@@ -1,0 +1,47 @@
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Windows
+*.tmp
+*.temp
+~$*
+
+# Office temp files
+~$*.doc*
+~$*.ppt*
+~$*.xls*
+
+# PDF temp files
+*.synctex.gz
+*.aux
+*.log
+*.out
+*.toc
+
+# Editor backups
+*~
+*.bak
+*.swp
+*.swo
+
+# Build artifacts
+*.pdf~
+*.docx~
+
+# Node modules (if using any markdown processors)
+node_modules/
+
+# Python (if using any python scripts)
+__pycache__/
+*.pyc
+*.pyo
+
+# Personal notes (optional - uncomment if you want to keep private notes)
+# notes.md
+# todo.md
