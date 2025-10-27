@@ -133,4 +133,49 @@ Strategic and customer-obsessed Product Leader with deep expertise in Dynamics 3
 
 ## **HOBBIES**
 
-Photography | Painting 
+Photography | Painting
+
+---
+
+## 📄 **About This Repository**
+
+This repository contains my professional resume in both **Markdown** and **PDF** formats.
+
+### **Files**
+- `README.md` - Resume in Markdown format (this file)
+- `Sourav_Resume.pdf` - Professional PDF version with clickable hyperlinks
+- `generate_pdf.py` - Python script to generate PDF from README.md
+
+### **Repository Structure**
+```
+Sourav-Resume/
+├── README.md                    # Markdown resume
+├── Sourav_Resume.pdf           # PDF version
+├── generate_pdf.py             # PDF generation script
+├── images/
+│   └── self/
+│       └── Me.jpg              # Profile picture
+└── .gitignore                  # Git ignore file
+```
+
+### **PDF Generation**
+To regenerate the PDF after updating the README:
+
+```bash
+python generate_pdf.py
+```
+
+**Features:**
+- ✅ Segoe UI font for professional appearance
+- ✅ Clickable hyperlinks (email, LinkedIn, GitHub)
+- ✅ Proper markdown formatting preservation
+- ✅ Hierarchical bullet points with sub-bullets
+- ✅ Optimized layout and spacing
+
+### **Requirements**
+- Python 3.x
+- ReportLab library: `pip install reportlab pillow`
+
+---
+
+*Last Updated: October 2025* 
