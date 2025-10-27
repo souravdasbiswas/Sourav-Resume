@@ -8,8 +8,39 @@ from reportlab.lib.units import inch
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, Table, TableStyle
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_LEFT, TA_RIGHT, TA_CENTER
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
 import re
 from pathlib import Path
+import html
+
+def clean_text(text):
+    """Clean and format text for PDF rendering"""
+    # Remove emoji characters (they don't render well in PDFs)
+    emoji_pattern = re.compile("["
+        u"\U0001F600-\U0001F64F"  # emoticons
+        u"\U0001F300-\U0001F5FF"  # symbols & pictographs
+        u"\U0001F680-\U0001F6FF"  # transport & map symbols
+        u"\U0001F1E0-\U0001F1FF"  # flags (iOS)
+        u"\U00002702-\U000027B0"
+        u"\U000024C2-\U0001F251"
+        u"\U0001F900-\U0001F9FF"  # Supplemental Symbols and Pictographs
+        u"\U0001FA70-\U0001FAFF"  # Symbols and Pictographs Extended-A
+        "]+", flags=re.UNICODE)
+    text = emoji_pattern.sub('', text)
+    
+    # Convert markdown bold (**text**) to HTML bold
+    text = re.sub(r'\*\*(.+?)\*\*', r'<b>\1</b>', text)
+    
+    # Convert markdown links [text](url) to just text (or keep url)
+    text = re.sub(r'\[([^\]]+)\]\(([^\)]+)\)', r'\1', text)
+    
+    # Escape XML special characters
+    text = html.escape(text, quote=False)
+    # Restore our bold tags
+    text = text.replace('&lt;b&gt;', '<b>').replace('&lt;/b&gt;', '</b>')
+    
+    return text.strip()
 
 def read_markdown(file_path):
     """Read markdown file"""
@@ -18,6 +49,33 @@ def read_markdown(file_path):
 
 def create_pdf(output_path='Sourav_Resume.pdf'):
     """Create PDF from markdown content"""
+    
+    # Register Segoe UI font (Windows system font)
+    try:
+        # Try to register Segoe UI font family
+        segoe_ui_path = 'C:/Windows/Fonts/segoeui.ttf'
+        segoe_ui_bold_path = 'C:/Windows/Fonts/segoeuib.ttf'
+        segoe_ui_italic_path = 'C:/Windows/Fonts/segoeuii.ttf'
+        
+        if Path(segoe_ui_path).exists():
+            pdfmetrics.registerFont(TTFont('SegoeUI', segoe_ui_path))
+            if Path(segoe_ui_bold_path).exists():
+                pdfmetrics.registerFont(TTFont('SegoeUI-Bold', segoe_ui_bold_path))
+            if Path(segoe_ui_italic_path).exists():
+                pdfmetrics.registerFont(TTFont('SegoeUI-Italic', segoe_ui_italic_path))
+            font_name = 'SegoeUI'
+            font_bold = 'SegoeUI-Bold'
+            font_italic = 'SegoeUI-Italic'
+        else:
+            # Fallback to default font
+            font_name = 'Helvetica'
+            font_bold = 'Helvetica-Bold'
+            font_italic = 'Helvetica-Oblique'
+    except Exception as e:
+        print(f"Warning: Could not load Segoe UI font, using default: {e}")
+        font_name = 'Helvetica'
+        font_bold = 'Helvetica-Bold'
+        font_italic = 'Helvetica-Oblique'
     
     # Read the markdown file
     md_content = read_markdown('README.md')
@@ -42,6 +100,7 @@ def create_pdf(output_path='Sourav_Resume.pdf'):
     title_style = ParagraphStyle(
         'CustomTitle',
         parent=styles['Heading1'],
+        fontName=font_bold,
         fontSize=24,
         textColor=colors.HexColor('#1a1a1a'),
         spaceAfter=6,
@@ -51,6 +110,7 @@ def create_pdf(output_path='Sourav_Resume.pdf'):
     subtitle_style = ParagraphStyle(
         'CustomSubtitle',
         parent=styles['Normal'],
+        fontName=font_name,
         fontSize=14,
         textColor=colors.HexColor('#4a4a4a'),
         spaceAfter=12,
@@ -60,6 +120,7 @@ def create_pdf(output_path='Sourav_Resume.pdf'):
     heading_style = ParagraphStyle(
         'CustomHeading',
         parent=styles['Heading2'],
+        fontName=font_bold,
         fontSize=14,
         textColor=colors.HexColor('#1a1a1a'),
         spaceAfter=6,
@@ -70,6 +131,7 @@ def create_pdf(output_path='Sourav_Resume.pdf'):
     subheading_style = ParagraphStyle(
         'CustomSubheading',
         parent=styles['Heading3'],
+        fontName=font_bold,
         fontSize=12,
         textColor=colors.HexColor('#2a2a2a'),
         spaceAfter=4,
@@ -80,6 +142,7 @@ def create_pdf(output_path='Sourav_Resume.pdf'):
     body_style = ParagraphStyle(
         'CustomBody',
         parent=styles['Normal'],
+        fontName=font_name,
         fontSize=10,
         textColor=colors.HexColor('#3a3a3a'),
         spaceAfter=6,
@@ -98,7 +161,7 @@ def create_pdf(output_path='Sourav_Resume.pdf'):
                 [
                     img,
                     Paragraph('<b>Sourav Das Biswas</b><br/><font size=11>Senior FastTrack Solution Architect</font>', title_style),
-                    Paragraph('📧 sobiswas@microsoft.com<br/>📞 +91-9830436633<br/>🔗 linkedin.com/in/souravdasbiswas', body_style)
+                    Paragraph('Email: sobiswas@microsoft.com<br/>Phone: +91-9830436633<br/>LinkedIn: linkedin.com/in/souravdasbiswas', body_style)
                 ]
             ]
             
@@ -130,39 +193,58 @@ def create_pdf(output_path='Sourav_Resume.pdf'):
     for section in sections[1:]:  # Skip the header section
         lines = section.strip().split('\n')
         
-        for line in lines:
-            line = line.strip()
+        i = 0
+        while i < len(lines):
+            line = lines[i].strip()
+            i += 1
+            
             if not line:
                 continue
                 
             # Section headers (## )
             if line.startswith('## **') and line.endswith('**'):
-                heading_text = line.replace('## **', '').replace('**', '')
+                heading_text = clean_text(line.replace('## **', '').replace('**', ''))
                 story.append(Spacer(1, 0.15*inch))
                 story.append(Paragraph(f'<b>{heading_text}</b>', heading_style))
                 
             # Subsection headers (### )
             elif line.startswith('### **'):
-                subheading_text = line.replace('### **', '').replace('**', '')
+                subheading_text = clean_text(line.replace('### **', '').replace('**', ''))
                 story.append(Paragraph(f'<b>{subheading_text}</b>', subheading_style))
                 
-            # Bold subsections
-            elif line.startswith('* **'):
-                bullet_text = line[2:]  # Remove '* '
-                story.append(Paragraph(bullet_text, body_style))
+            # Bold subsections with emojis (like "🤖 AI & Machine Learning")
+            elif line.startswith('### '):
+                subheading_text = clean_text(line.replace('### ', ''))
+                story.append(Paragraph(f'<b>{subheading_text}</b>', subheading_style))
+                
+            # Bullets with bold text
+            elif line.startswith('* **') or line.startswith('- **'):
+                bullet_text = clean_text(line[2:])  # Remove '* ' or '- '
+                # Check if there are sub-bullets following
+                sub_items = []
+                while i < len(lines) and (lines[i].strip().startswith('    * ') or lines[i].strip().startswith('    - ')):
+                    sub_item = clean_text(lines[i].strip()[6:])  # Remove '    * '
+                    sub_items.append(f'&nbsp;&nbsp;&nbsp;&nbsp;• {sub_item}')
+                    i += 1
+                
+                story.append(Paragraph(f'• {bullet_text}', body_style))
+                for sub_item in sub_items:
+                    story.append(Paragraph(sub_item, body_style))
                 
             # Regular bullets
             elif line.startswith('* ') or line.startswith('- '):
-                bullet_text = '• ' + line[2:]
-                story.append(Paragraph(bullet_text, body_style))
+                bullet_text = clean_text(line[2:])
+                story.append(Paragraph(f'• {bullet_text}', body_style))
                 
             # Italic date ranges
             elif line.startswith('*') and '|' in line:
-                story.append(Paragraph(f'<i>{line}</i>', body_style))
+                date_text = clean_text(line.strip('*'))
+                story.append(Paragraph(f'<i>{date_text}</i>', body_style))
                 
             # Regular paragraphs
             elif line and not line.startswith('#') and not line.startswith('<'):
-                story.append(Paragraph(line, body_style))
+                para_text = clean_text(line)
+                story.append(Paragraph(para_text, body_style))
     
     # Build PDF
     try:
